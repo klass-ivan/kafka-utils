@@ -30,6 +30,7 @@ from kazoo.exceptions import NodeExistsError
 from six.moves import input
 
 from kafka_utils.util.client import KafkaToolClient
+from kafka_utils.util.config import broker_client_config
 from kafka_utils.util.error import UnknownTopic
 from kafka_utils.util.metadata import get_topic_partition_metadata
 from kafka_utils.util.offsets import get_topics_watermarks
@@ -278,6 +279,7 @@ class KafkaGroupReader:
             consumer_timeout_ms=30000,
             fetch_max_wait_ms=2000,
             max_partition_fetch_bytes=10 * 1024 * 1024,  # 10MB
+            **broker_client_config.get()
         )
 
         # Fetch metadata as partitions_for_topic only returns locally cached metadata

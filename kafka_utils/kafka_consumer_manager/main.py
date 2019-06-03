@@ -35,7 +35,7 @@ from .commands.offsets_for_timestamp import OffsetsForTimestamp
 from .commands.rename_group import RenameGroup
 from .commands.unsubscribe_topics import UnsubscribeTopics
 from .commands.watermark_get import WatermarkGet
-from kafka_utils.util.config import get_cluster_config
+from kafka_utils.util.config import get_cluster_config, load_broker_client_config, broker_client_config
 from kafka_utils.util.error import ConfigurationError
 
 
@@ -101,6 +101,7 @@ def parse_args():
 
 
 def run():
+    load_broker_client_config()
     logging.basicConfig(level=logging.ERROR)
     args = parse_args()
     if args.warn_verbose:

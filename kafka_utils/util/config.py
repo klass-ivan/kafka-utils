@@ -15,12 +15,14 @@
 from __future__ import absolute_import
 
 import glob
+import json
 import logging
 import os
 from collections import namedtuple
 
 import six
 import yaml
+import contextvars
 from six.moves import map
 
 from kafka_utils.util.error import ConfigurationError
@@ -250,6 +252,22 @@ def get_cluster_config(
         return topology.get_cluster_by_name(cluster_name)
     else:
         return topology.get_local_cluster()
+
+
+broker_client_config = contextvars.ContextVar("broker_client_config")
+
+
+def load_broker_client_config():
+    json_filename = os.environ.get('BROKER_CLIENT_CONFIG_JSON')
+    if json_filename:
+        with open(json_filename) as json_file:
+            data = json.load(json_file)
+            if data.get('api_version'):
+                data['api_version'] = tuple(map(int, data['api_version']))
+                print(data['api_version'])
+            broker_client_config.set(data)
+    else:
+        broker_client_config.set({})
 
 
 def iter_configurations(kafka_topology_base_path=None):

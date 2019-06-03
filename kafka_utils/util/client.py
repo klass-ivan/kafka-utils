@@ -20,14 +20,15 @@ import functools
 import time
 
 from kafka import SimpleClient
-from kafka.conn import get_ip_port_afi
-from kafka.errors import ConnectionError
+from kafka.conn import get_ip_port_afi, BrokerConnection
+from kafka.errors import ConnectionError, KafkaConnectionError
 from kafka.errors import FailedPayloadsError
 from kafka.errors import GroupCoordinatorNotAvailableError
 from kafka.errors import GroupLoadInProgressError
 from kafka.errors import NotCoordinatorForGroupError
 from retrying import retry
 
+from kafka_utils.util.config import broker_client_config, load_broker_client_config
 from kafka_utils.util.protocol import KafkaToolProtocol
 
 RETRY_ATTEMPTS = 10
@@ -80,6 +81,24 @@ class KafkaToolClient(SimpleClient):
         decoder = KafkaToolProtocol.decode_consumer_metadata_response
 
         return self._send_broker_unaware_request(payloads, encoder, decoder)
+
+    def _get_conn(self, host, port, afi):
+        """Get or create a connection to a broker using host and port"""
+        host_key = (host, port)
+        if host_key not in self._conns:
+            self._conns[host_key] = BrokerConnection(
+                host, port, afi,
+                request_timeout_ms=self.timeout * 1000,
+                client_id=self.client_id,
+                **broker_client_config.get()
+            )
+
+        conn = self._conns[host_key]
+        if not conn.connect_blocking(self.timeout):
+            conn.close()
+            raise KafkaConnectionError("%s:%s (%s)" % (host, port, afi))
+        return conn
+
 
     def _send_consumer_aware_request(self, group, payloads, encoder_fn, decoder_fn):
         """
